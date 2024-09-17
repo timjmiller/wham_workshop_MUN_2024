@@ -64,9 +64,7 @@ pre {
 
 Installing WHAM on Windows is much more difficult than Linux and Mac, but that is what we have to do.
 
-First an appropriate version of Rtools must be installed. 
-
-ITD must install this so file a help ticket!
+First an appropriate version of Rtools must be installed. (This may require admin permission.)
 
 Once that Rtools is available, we need a package that will install non-standard packages from github. We can use the devtools R package:
 ```{r, eval = FALSE}
@@ -89,7 +87,7 @@ Should give you a location for it. Something like
 
 `"C:/Program Files/RStudio/bin/quarto/bin/pandoc.exe"`
 
-If running R outside of Rstudio setting this might be necessary.
+If running R outside of Rstudio setting a location for pandoc might be necessary. E.g.,
 ```{r, eval = FALSE}
 Sys.setenv(RSTUDIO_PANDOC="C:/Program Files/RStudio/bin/quarto/bin/pandoc.exe")
 ```
@@ -97,19 +95,19 @@ Sys.setenv(RSTUDIO_PANDOC="C:/Program Files/RStudio/bin/quarto/bin/pandoc.exe")
 
 ---
 
-# Installation <br>
+# Installation the hard way <br>
 
-Next, try to install WHAM. Using the main branch will install the latest release of WHAM, but the devel branch passes all tests and impliments new features that haven't been released yet.
+WHAM is available on github and there are multiple branches. Using the main branch will install the latest release of WHAM, but the devel branch passes all tests and implements new features that haven't been released yet. *We will be using the devel branch!*
+
+There is a hard way and a not so hard way to install WHAM. First, the hard way using the devtools package:
 ```{r, eval = FALSE}
 devtools::install_github("timjmiller/wham", dependencies=TRUE, ref = "devel", INSTALL_opts=c("--no-multiarch"))
 ```
 By default R wants to install both 32 and 64 bit versions of the package, but it is very unlikely that anyone still uses a machine with 32 bit memory. 
 
-`INSTALL_opts=c("--no-multiarch")` only installs the 64 bit version and is likely necessary for th installation to actually complete.
+`INSTALL_opts=c("--no-multiarch")` only installs the 64 bit version and is likely necessary for the installation to actually complete.
 
-There will be many dependencies that must be installed including TMB. 
-
-Windows often has a hard time keeping packages unloaded that need to be installed or updated. So, it might help to install many of these before the WHAM installation.
+There will be many dependencies that must be installed, including TMB. Windows often has a hard time keeping packages unloaded that need to be installed or updated. So, it might help to install many of these before the WHAM installation.
 
 ```{r, eval = FALSE}
 to.install <- c("plotrix","ellipse","Hmisc","gplots","fields","RColorBrewer","colorspace","mnormt","Deriv","tidyr","dplyr","ggplot2","viridis", "abind", "rmarkdown", "pander", "kableExtra")
@@ -120,7 +118,7 @@ if(length(new.packages)) install.packages(new.packages)
 
 ---
 
-# Installation <br>
+# Installation the not so hard way <br>
 
 The pak package seems to provide a much easier installation
 ```{r, eval = FALSE}
@@ -143,7 +141,7 @@ input <- prepare_wham_input(asap3)
 nofit <- fit_wham(input, do.fit = FALSE)
 plot_wham_output(nofit)
 ```
-An html view should open in your default browser with "output" from this unfitted model.
+An html file should open in your default browser with "output" from this unfitted model.
 
 ---
 
@@ -152,9 +150,9 @@ An html view should open in your default browser with "output" from this unfitte
 When using WHAM for an actual assessment:
 * It can be useful to keep track of the version used for management.
 * When updating the assessment, a newer version might be used.
-* Being able to use the previous version can be helpful for reproducability.
+* Being able to use the previous version can be helpful for reproducibility.
 * If there are differences in model results, we want to know why.
-* Knowing the differences all of the management versions can help understand this.
+* Knowing the differences between management versions can help understand this.
 
 ---
 
