@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="" xml:lang="">
+  <head>
+    <title>Tips on Installing WHAM</title>
+    <meta charset="utf-8" />
+    <meta name="author" content="Tim Miller NOAA Fisheries, NEFSC" />
+    <script src="libs/header-attrs-2.25/header-attrs.js"></script>
+    <link rel="stylesheet" href="xaringan-themer_16_9.css" type="text/css" />
+    <link rel="stylesheet" href="slides-style_TMB201.css" type="text/css" />
+  </head>
+  <body>
+    <textarea id="source">
+class: center, middle, inverse, title-slide
+
+.title[
+# Tips on Installing WHAM
+]
+.author[
+### Tim Miller<br>NOAA Fisheries, NEFSC
+]
+
+---
+
+
+layout: true
+
+.footnote[U.S. Department of Commerce | National Oceanic and Atmospheric Administration | National Marine Fisheries Service]
+
+
+&lt;style type="text/css"&gt;
+
+code.cpp{
+  font-size: 14px;
+}
+code.r{
+  font-size: 14px;
+}
+
+
+&lt;/style&gt;
+
+&lt;style type="text/css"&gt;
+pre {
+  max-height: 400px;
+  max-width: 800px;
+  overflow-y: auto;
+}
+
+&lt;/style&gt;
+
+
+
+
+
+
+---
+# Installation &lt;br&gt;
+
+Installing WHAM on Windows is much more difficult than Linux and Mac, but that is what we have to do.
+
+First an appropriate version of Rtools must be installed. 
+
+ITD must install this so file a help ticket!
+
+Once that Rtools is available, we need a package that will install non-standard packages from github. We can use the devtools R package:
+
+```r
+install.packages("devtools")
+```
+Also, a TeX package should be installed to allow output tables to be rendered without error. If one is not availble use the tinytex package:
+
+```r
+install.packages("tinytex")
+tinytex::install_tinytex()
+```
+
+---
+# Installation &lt;br&gt;
+
+Pandoc is another requirement that should be available with Rstudio. In an Rstudio console:
+
+```r
+rmarkdown::find_pandoc() 
+```
+Should give you a location for it. Something like
+
+`"C:/Program Files/RStudio/bin/quarto/bin/pandoc.exe"`
+
+If running R outside of Rstudio setting this might be necessary.
+
+```r
+Sys.setenv(RSTUDIO_PANDOC="C:/Program Files/RStudio/bin/quarto/bin/pandoc.exe")
+```
+
+
+---
+
+# Installation &lt;br&gt;
+
+Next, try to install WHAM. Using the main branch will install the latest release of WHAM, but the devel branch passes all tests and impliments new features that haven't been released yet.
+
+```r
+devtools::install_github("timjmiller/wham", dependencies=TRUE, ref = "devel", INSTALL_opts=c("--no-multiarch"))
+```
+By default R wants to install both 32 and 64 bit versions of the package, but it is very unlikely that anyone still uses a machine with 32 bit memory. 
+
+`INSTALL_opts=c("--no-multiarch")` only installs the 64 bit version and is likely necessary for th installation to actually complete.
+
+There will be many dependencies that must be installed including TMB. 
+
+Windows often has a hard time keeping packages unloaded that need to be installed or updated. So, it might help to install many of these before the WHAM installation.
+
+
+```r
+to.install &lt;- c("plotrix","ellipse","Hmisc","gplots","fields","RColorBrewer","colorspace","mnormt","Deriv","tidyr","dplyr","ggplot2","viridis", "abind", "rmarkdown", "pander", "kableExtra")
+new.packages &lt;- to.install[!(to.install %in% installed.packages()[,"Package"])]
+if(length(new.packages)) install.packages(new.packages)
+```
+
+
+---
+
+# Installation &lt;br&gt;
+
+The pak package seems to provide a much easier installation
+
+```r
+install.packages("pak")
+pak::pkg_install("timjmiller/wham@devel")
+```
+
+pak will automatically install dependencies
+
+---
+
+# Installation &lt;br&gt;
+
+Once the package has been successfully installed. Try running this code to make sure that the package is functioning properly.
+
+```r
+library(wham)
+path_to_examples &lt;- system.file("extdata", package="wham")
+asap3 &lt;- read_asap3_dat(file.path(path_to_examples,"ex2_SNEMAYT.dat"))
+input &lt;- prepare_wham_input(asap3) 
+nofit &lt;- fit_wham(input, do.fit = FALSE)
+plot_wham_output(nofit)
+```
+An html view should open in your default browser with "output" from this unfitted model.
+
+---
+
+# Installation of multiple versions
+
+When using WHAM for an actual assessment:
+* It can be useful to keep track of the version used for management.
+* When updating the assessment, a newer version might be used.
+* Being able to use the previous version can be helpful for reproducability.
+* If there are differences in model results, we want to know why.
+* Knowing the differences all of the management versions can help understand this.
+
+---
+
+# Installation of multiple versions
+
+After the initial package has been installed, Installing alternative versions is easier. 
+
+A fitted model should have information on the version and commit of WHAM that was used.
+
+If we wanted to have both the main and devel branches available, we could install the devel branch to a special location. Suppose a "devel" directory exists `c:/work/wham/other_versions/devel` and load that library. 
+
+
+```r
+pak::pkg_install("timjmiller/wham@devel", lib = "c:/work/wham/other_versions/devel")
+library("wham", lib.loc = "c:/work/wham/other_versions/devel")
+```
+
+One can even install a specific commit: 
+
+
+```r
+pak::pkg_install("timjmiller/wham@76093e0", lib = "c:/work/wham/old_packages/76093e0")
+library("wham", lib.loc = "c:/work/wham/old_packages/76093e0")
+```
+
+NOTE: It is best to try to keep a single version loaded in a particular R session. In particular, make_osa_residuals will get confused when multiple wham libraries are loaded when trying to do things in parallel.
+
+
+    </textarea>
+<style data-target="print-only">@media screen {.remark-slide-container{display:block;}.remark-slide-scaler{box-shadow:none;}}</style>
+<script src="https://remarkjs.com/downloads/remark-latest.min.js"></script>
+<script>var slideshow = remark.create({
+"ratio": "16:9",
+"highlightStyle": "github",
+"highlightLines": true,
+"countIncrementalSlides": false
+});
+if (window.HTMLWidgets) slideshow.on('afterShowSlide', function (slide) {
+  window.dispatchEvent(new Event('resize'));
+});
+(function(d) {
+  var s = d.createElement("style"), r = d.querySelector(".remark-slide-scaler");
+  if (!r) return;
+  s.type = "text/css"; s.innerHTML = "@page {size: " + r.style.width + " " + r.style.height +"; }";
+  d.head.appendChild(s);
+})(document);
+
+(function(d) {
+  var el = d.getElementsByClassName("remark-slides-area");
+  if (!el) return;
+  var slide, slides = slideshow.getSlides(), els = el[0].children;
+  for (var i = 1; i < slides.length; i++) {
+    slide = slides[i];
+    if (slide.properties.continued === "true" || slide.properties.count === "false") {
+      els[i - 1].className += ' has-continuation';
+    }
+  }
+  var s = d.createElement("style");
+  s.type = "text/css"; s.innerHTML = "@media print { .has-continuation { display: none; } }";
+  d.head.appendChild(s);
+})(document);
+// delete the temporary CSS (for displaying all slides initially) when the user
+// starts to view slides
+(function() {
+  var deleted = false;
+  slideshow.on('beforeShowSlide', function(slide) {
+    if (deleted) return;
+    var sheets = document.styleSheets, node;
+    for (var i = 0; i < sheets.length; i++) {
+      node = sheets[i].ownerNode;
+      if (node.dataset["target"] !== "print-only") continue;
+      node.parentNode.removeChild(node);
+    }
+    deleted = true;
+  });
+})();
+// add `data-at-shortcutkeys` attribute to <body> to resolve conflicts with JAWS
+// screen reader (see PR #262)
+(function(d) {
+  let res = {};
+  d.querySelectorAll('.remark-help-content table tr').forEach(tr => {
+    const t = tr.querySelector('td:nth-child(2)').innerText;
+    tr.querySelectorAll('td:first-child .key').forEach(key => {
+      const k = key.innerText;
+      if (/^[a-z]$/.test(k)) res[k] = t;  // must be a single letter (key)
+    });
+  });
+  d.body.setAttribute('data-at-shortcutkeys', JSON.stringify(res));
+})(document);
+(function() {
+  "use strict"
+  // Replace <script> tags in slides area to make them executable
+  var scripts = document.querySelectorAll(
+    '.remark-slides-area .remark-slide-container script'
+  );
+  if (!scripts.length) return;
+  for (var i = 0; i < scripts.length; i++) {
+    var s = document.createElement('script');
+    var code = document.createTextNode(scripts[i].textContent);
+    s.appendChild(code);
+    var scriptAttrs = scripts[i].attributes;
+    for (var j = 0; j < scriptAttrs.length; j++) {
+      s.setAttribute(scriptAttrs[j].name, scriptAttrs[j].value);
+    }
+    scripts[i].parentElement.replaceChild(s, scripts[i]);
+  }
+})();
+(function() {
+  var links = document.getElementsByTagName('a');
+  for (var i = 0; i < links.length; i++) {
+    if (/^(https?:)?\/\//.test(links[i].getAttribute('href'))) {
+      links[i].target = '_blank';
+    }
+  }
+})();
+// adds .remark-code-has-line-highlighted class to <pre> parent elements
+// of code chunks containing highlighted lines with class .remark-code-line-highlighted
+(function(d) {
+  const hlines = d.querySelectorAll('.remark-code-line-highlighted');
+  const preParents = [];
+  const findPreParent = function(line, p = 0) {
+    if (p > 1) return null; // traverse up no further than grandparent
+    const el = line.parentElement;
+    return el.tagName === "PRE" ? el : findPreParent(el, ++p);
+  };
+
+  for (let line of hlines) {
+    let pre = findPreParent(line);
+    if (pre && !preParents.includes(pre)) preParents.push(pre);
+  }
+  preParents.forEach(p => p.classList.add("remark-code-has-line-highlighted"));
+})(document);</script>
+
+<script>
+slideshow._releaseMath = function(el) {
+  var i, text, code, codes = el.getElementsByTagName('code');
+  for (i = 0; i < codes.length;) {
+    code = codes[i];
+    if (code.parentNode.tagName !== 'PRE' && code.childElementCount === 0) {
+      text = code.textContent;
+      if (/^\\\((.|\s)+\\\)$/.test(text) || /^\\\[(.|\s)+\\\]$/.test(text) ||
+          /^\$\$(.|\s)+\$\$$/.test(text) ||
+          /^\\begin\{([^}]+)\}(.|\s)+\\end\{[^}]+\}$/.test(text)) {
+        code.outerHTML = code.innerHTML;  // remove <code></code>
+        continue;
+      }
+    }
+    i++;
+  }
+};
+slideshow._releaseMath(document);
+</script>
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+(function () {
+  var script = document.createElement('script');
+  script.type = 'text/javascript';
+  script.src  = 'https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-MML-AM_CHTML';
+  if (location.protocol !== 'file:' && /^https?:/.test(script.src))
+    script.src  = script.src.replace(/^https?:/, '');
+  document.getElementsByTagName('head')[0].appendChild(script);
+})();
+</script>
+  </body>
+</html>
