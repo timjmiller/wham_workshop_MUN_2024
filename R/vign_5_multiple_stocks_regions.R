@@ -286,7 +286,7 @@ input_move_age$map$trans_mu <- factor(x)
 
 input_move_age$par <- fit_move$parList
 fit_move_age <- fit_wham(input_move_age, do.osa = FALSE, do.retro = FALSE, do.sdrep = FALSE, do.brps = FALSE)
-#saveRDS(fit_move_age, file.path(res_dir,"vign_5_fit_2_stocks_move_age.RDS"))
+saveRDS(fit_move_age, file.path(res_dir,"vign_5_fit_2_stocks_move_age.RDS"))
 
 fit_move$opt$obj
 fit_move_age$opt$obj
@@ -326,7 +326,7 @@ input_move_year$map$trans_mu <- factor(x)
 
 input_move_year$par <- fit_move$parList
 fit_move_year <- fit_wham(input_move_year, do.osa = FALSE, do.retro = FALSE, do.sdrep = FALSE, do.brps = FALSE)
-#saveRDS(fit_move_year, file.path(res_dir,"vign_5_fit_2_stocks_move_year.RDS"))
+saveRDS(fit_move_year, file.path(res_dir,"vign_5_fit_2_stocks_move_year.RDS"))
 
 fit_move$opt$obj
 fit_move_year$opt$obj
@@ -361,12 +361,13 @@ input_move_prior <- prepare_wham_input(
 	catchability = q_in,
 	move = move_prior)
 
+nofit_move_prior <- fit_wham(input_move_prior, do.fit = FALSE, do.brps = FALSE)
+
 x <- input_move_prior$par$trans_mu
 x[] <- as.integer(input_move_prior$map$trans_mu)
 x[1,,2,1] <- NA
 input_move_prior$map$trans_mu <- factor(x)
 
-nofit_move_prior <- fit_wham(input_move_prior, do.fit = FALSE, do.brps = FALSE)
 
 #fixed effect estimated in fit_move
 ind <- names(fit_move$parList)[!names(fit_move$parList) %in% "trans_mu"]
@@ -378,8 +379,13 @@ fit_move_prior <- fit_wham(input_move_prior, do.osa = FALSE, do.retro = FALSE, d
 #estimated movement
 fit_move$rep$mu[1,8,1,1,1,2]
 fit_move_prior$rep$mu[1,8,1,1,1,2]
-#saveRDS(fit_move_prior, file.path(res_dir,"vign_5_fit_2_stocks_move_prior.RDS"))
+saveRDS(fit_move_prior, file.path(res_dir,"vign_5_fit_2_stocks_move_prior.RDS"))
 
-prop_AA <- t(sapply(1:33, function(y) sapply(1:8, function(x) fit_move$rep$NAA[1,2,y,x]/sum(fit_move$rep$NAA[1,,y,x]))))
-matplot(fit_move$years, prop_AA, type = 'l')
 
+prop_AA <- t(sapply(1:33, function(y) sapply(2:8, function(x) fit_move$rep$NAA[1,2,y,x]/sum(fit_move$rep$NAA[1,,y,x]))))
+matplot(fit_move$years, prop_AA, type = 'l', ylab = "Proportion of northern stock in the south", xlab = "Year", lty = 1, col = 1:7)
+legend("topright", legend = paste0("Age ", 2:8), col = 1:7, lty  = 1)
+
+prop_AA <- t(sapply(1:33, function(y) sapply(2:8, function(x) fit_move_year$rep$NAA[1,2,y,x]/sum(fit_move_year$rep$NAA[1,,y,x]))))
+matplot(fit_move$years, prop_AA, type = 'l', ylab = "Proportion of northern stock in the south", xlab = "Year", lty = 1, col = 1:7)
+legend("topright", legend = paste0("Age ", 2:8), col = 1:7, lty  = 1)
