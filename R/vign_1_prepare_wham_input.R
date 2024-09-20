@@ -126,6 +126,7 @@ fit_seq$opt$obj - fit_all$opt$obj # equal
 fit_asap$opt$obj - fit_all$opt$obj # equal
 
 res_dir <- file.path(getwd(),"temp")
+dir.create(res_dir)
 
 saveRDS(fit_asap, file.path(res_dir,"fit_asap.RDS"))
 saveRDS(fit_all, file.path(res_dir,"fit_all.RDS"))

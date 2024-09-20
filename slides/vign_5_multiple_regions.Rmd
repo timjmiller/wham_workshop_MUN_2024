@@ -1,7 +1,7 @@
 ---
 title:  "Configuring multiple stocks and regions and movement"
 subtitle: ""
-author: "Tim Miller<br>NOAA Fisheries, NEFSC<br> 2024-06-04"
+author: "Tim Miller<br>NOAA Fisheries, NEFSC"
 output:
   xaringan::moon_reader:
     self_contained: true
@@ -52,13 +52,257 @@ options(width = 50)
 
 # Outline <br>
 
-* Reading in data
+* Reading in data for two stocks, regions and fitting models without movement
 * Using `set_move`
 * Using different options with example data
- * Different mean movement models
+ * Configuring a mean movement models
+ * Configuring age-specific random effects
+ * Configuring year-specific random effects
  * Configuring priors
- * Using random effects
 
+---
+
+# Using ASAP Input <br>
+
+When there are ASAP3 dat files for each stock/region they can be read in using the `read_asap3_dat` function.
+
+```{r, eval = TRUE}
+library(wham)
+path_to_examples <- system.file("extdata", package="wham")
+two_stocks_asap <- read_asap3_dat(file.path(path_to_examples,c("ex1_SNEMAYT.dat","ex1_SNEMAYT.dat")))
+```
+
+The `prepare_wham_input` function will create an input input
+```{r, include = FALSE}
+ini_2_stocks <- prepare_wham_input(two_stocks_asap)
+```
+```{r, eval = FALSE}
+ini_2_stocks <- prepare_wham_input(two_stocks_asap)
+```
+The default input 
+* assumes no connectivity of any of the data with a different region for each ASAP
+* a basic statistical catch-at-age model for each stock/region just as the default with one ASAP dat file
+
+---
+
+# Using ASAP Input <br>
+
+The input we created should just fit the same exact model twice simultaneously.
+
+```{r, include = FALSE}
+fit_2_stocks <- readRDS("../temp/vign_5_fit_2_stocks.RDS")
+```
+```{r, eval = FALSE}
+fit_2_stocks <- fit_wham(ini_2_stocks, do.osa = FALSE, do.retro= FALSE, do.sdrep = FALSE)
+```
+```{r, eval = TRUE}
+fit_2_stocks$rep$SSB
+```
+---
+
+# Different stocks
+
+We have a couple of ASAP3 .dat files included with the repo for this workshop, but adjusting the selectivity assumptions for simplicity. Note, this still assumes NO connectivity between the regions and stocks.
+```{r, eval = TRUE, include = FALSE}
+diff_stocks_asap <- read_asap3_dat(file.path("../data",c("north.dat","south.dat")))
+selectivity <- list(model = rep(c("logistic", "age-specific"),c(8,4)), n_selblocks = 12,
+	fix_pars = c(rep(list(NULL),8), list(2:8,3:8,3:8,2:8)),
+	initial_pars = c(rep(list(c(2,0.2)),8),list(rep(c(0.5,1),c(1,7)), rep(c(0.5,1),c(2,6)),rep(c(0.5,1),c(2,6)),rep(c(0.5,1),c(1,7)))))
+input <- prepare_wham_input(diff_stocks_asap, selectivity = selectivity)
+```
+```{r, eval =  FALSE}
+diff_stocks_asap <- read_asap3_dat(file.path("../data",c("north.dat","south.dat")))
+selectivity <- list(model = rep(c("logistic", "age-specific"),c(8,4)), n_selblocks = 12,
+	fix_pars = c(rep(list(NULL),8), list(2:8,3:8,3:8,2:8)),
+	initial_pars = c(rep(list(c(2,0.2)),8),list(rep(c(0.5,1),c(1,7)), rep(c(0.5,1),c(2,6)),rep(c(0.5,1),c(2,6)),rep(c(0.5,1),c(1,7)))))
+input <- prepare_wham_input(diff_stocks_asap, selectivity = selectivity)
+```
+---
+
+# Without ASAP Input
+
+Using the same data that came in the ASAP3 dat files, but loading it in without them. This is similar to the code for the single stock, but we have a few other items to specify with multiple stocks and regions.
+
+```{r, eval = TRUE}
+years <- as.integer(input$years)
+ages <- 1:input$data$n_ages
+waa <- input$data$waa
+mat <- input$data$mature
+waa_pointer_indices <- input$data$waa_pointer_indices
+waa_pointer_fleets <- input$data$waa_pointer_fleets
+waa_pointer_ssb <- input$data$waa_pointer_ssb
+fracyr_ssb <-  input$data$fracyr_SSB
+```
+---
+
+# Without ASAP Input
+
+Catch and index information structures are the same as with a single region:
+```{r, eval = TRUE}
+catch <- input$data$agg_catch
+catch_cv <- cbind(sqrt(exp(input$data$agg_catch_sigma^2) - 1))
+catch_Neff <- cbind(input$data$catch_Neff)
+catch_paa <- input$data$catch_paa
+use_catch_paa <- input$data$use_catch_paa
+selblock_pointer_fleets <- input$data$selblock_pointer_fleets
+
+index <- input$data$agg_indices
+index_cv <- cbind(sqrt(exp(input$data$agg_index_sigma^2) - 1))
+index_Neff <- cbind(input$data$index_Neff)
+index_fracyr <- input$data$fracyr_indices
+units_indices <- input$data$units_indices
+units_index_paa <- input$data$units_index_paa
+use_indices <- input$data$use_indices
+use_index_paa <- input$data$use_index_paa
+index_paa <- input$data$index_paa
+selblock_pointer_indices <- input$data$selblock_pointer_indices
+```
+
+---
+
+
+# Without ASAP Input
+
+We need to specify a couple of more items in basic_info: region and stock names, the number of regions, region for spawning of each stock
+```{r, eval = TRUE}
+basic_info <- list(
+	n_stocks = 2L,
+	n_regions = 2L,
+	region_names <- c("North_r", "South_r"),
+	stock_names <- c("North_s", "South_s"),
+	ages = 1:input$data$n_ages,
+	n_seasons = 1L,
+	n_fleets = input$data$n_fleets,
+	fracyr_SSB = fracyr_ssb,
+	maturity = mat,
+	years = as.integer(input$years),
+	waa = waa,
+	waa_pointer_ssb = waa_pointer_ssb,
+	spawn_regions = 1:2,
+	spawn_seasons = c(1,1)
+)
+
+```
+
+---
+
+# Without ASAP Input
+
+For the catch information, we also need to specify the region where each fleet operates (2 fleets in each region).
+```{r, eval = TRUE}
+catch_info <- list(
+	n_fleets = NCOL(catch),
+	agg_catch = catch,
+	agg_catch_cv = catch_cv,
+	catch_paa = catch_paa,
+	use_catch_paa = use_catch_paa,
+	catch_Neff = catch_Neff,
+	selblock_pointer_fleets = selblock_pointer_fleets,
+	waa_pointer_fleets = waa_pointer_fleets,
+	fleet_regions = rep(c(1:2),c(2,2))
+)
+
+```
+---
+
+# Without ASAP Input
+
+Similarly, we need to specify where the index observations come from (2 indices in each region)
+```{r, eval = TRUE}
+index_info <- list(
+	n_indices = NCOL(index),
+	agg_indices = index,
+	units_indices = units_indices,
+	units_index_paa = units_index_paa,
+	agg_index_cv = index_cv,
+	fracyr_indices = index_fracyr,
+	use_indices = use_indices,
+	use_index_paa = use_index_paa,
+	index_paa = index_paa,
+	index_Neff = index_Neff,
+	selblock_pointer_indices = selblock_pointer_indices,
+	waa_pointer_indices = waa_pointer_indices,
+	index_regions = rep(c(1:2),c(2,2))
+)
+```
+
+---
+
+# Without ASAP Input
+
+We will use the same selectivity assumptions defined above. Here we define the fixed natural mortality for each stock, initial $F$, and catchability:
+```{r, eval = FALSE}
+MAA <- exp(input$par$M_re)
+for(i in 1:2) for(j in 1:2) MAA[i,j,,] <- MAA[i,j,,]*exp(matrix(input$par$Mpars[i,j,], length(basic_info$years), length(basic_info$ages), byrow = TRUE))
+M_in <- list(initial_MAA = MAA)
+F_in <- list(F = matrix(0.3, length(basic_info$years), catch_info$n_fleets))
+q_in <- list(initial_q = rep(1e-6, index_info$n_indices))
+```
+
+Some other specifications:
+* random effects on recruitment and "survival"
+* Equilibrium age composition for January 1 NAA in the first year. (In multi-region models with movement, it seems typically necessary to make a simplifying assumption on how to model the initial numbers at age).
+
+```{r, eval = FALSE}
+NAA_list <- list(sigma = "rec+1", N1_model = rep("equilibrium",2))
+```
+
+---
+# Multi-stock inputs: 3 ways
+
+All at once:
+```{r, eval = FALSE}
+input_all <- prepare_wham_input(
+	basic_info = basic_info,
+	NAA_re = NAA_list,
+	selectivity = selectivity, 
+	catch_info = catch_info, 
+	index_info = index_info, 
+	M = M_in, 
+	F = F_in, 
+	catchability = q_in)
+```
+---
+
+# Multi-stock inputs: 3 ways
+
+Build input sequentially
+```{r, eval = FALSE}
+input_seq <- prepare_wham_input(basic_info = basic_info)
+input_seq <- set_NAA(input_seq, NAA_re = NAA_list)
+input_seq <- set_M(input_seq, M = M_in)
+input_seq <- set_catch(input_seq, catch_info = catch_info)
+input_seq <- set_F(input_seq, F_in)
+input_seq <- set_indices(input_seq, index_info = index_info)
+input_seq <- set_q(input_seq, q_in)
+input_seq <- set_selectivity(input_seq, selectivity = selectivity)
+```
+AND using asap input
+```{r, eval = FALSE}
+input_asap <- prepare_wham_input(diff_stocks_asap, selectivity = selectivity, NAA_re = NAA_list)
+```
+---
+
+# Compare fitted models
+
+And you can verify that the optimized models using each of the 3 inputs gives the same results.
+```{r, include = FALSE}
+res_dir <- file.path("../temp")
+fit_seq <- readRDS(file.path(res_dir,"vign_5_fit_2_stocks_seq.RDS"))
+fit_all <- readRDS(file.path(res_dir,"vign_5_fit_2_stocks_all.RDS"))
+fit_asap <- readRDS(file.path(res_dir,"vign_5_fit_2_stocks_asap.RDS"))
+```
+```{r, eval = FALSE}
+fit_seq <- fit_wham(input_seq, do.retro = FALSE, do.osa = FALSE, do.sdrep = FALSE, do.brps = FALSE)
+fit_all <- fit_wham(input_all, do.retro = FALSE, do.osa = FALSE, do.sdrep = FALSE, do.brps = FALSE)
+fit_asap <- fit_wham(input_asap, do.retro = FALSE, do.osa = FALSE, do.sdrep = FALSE, do.brps = FALSE)
+fit_seq$opt$obj - fit_all$opt$obj # equal
+fit_asap$opt$obj - fit_all$opt$obj # equal
+```
+```{r, eval = TRUE}
+fit_seq$opt$obj - fit_all$opt$obj # equal
+fit_asap$opt$obj - fit_all$opt$obj # equal
+```
 ---
 
 # Movement options
@@ -105,402 +349,316 @@ The `move` argument to `prepare_wham_input` or `set_move` has these elements to 
 
 ---
 
-# Mean model options with example data
+# Example with setting up movement
 
-We will use same input and fit using the `ex1_SNEMAYT.dat` input available in WHAM.
+We will use the same "north" and "south" stocks as above.
+* assume 5 different equal seasonal intervals within the year
+* spawning occurs in the middle (season 3)
+* Only the north stock can move and only to the south during seasons 1,4,5.
+* All fish move back to the north at the end of season 2.
 
+---
+
+# Modify basic_info
+
+Specify the intervals and redefine the time elapsed within the third interval for SSB
+```{r, eval = FALSE}
+basic_info$n_seasons <- 5L
+basic_info$fracyr_seasons <- rep(1/5,5)
+basic_info$spawn_seasons <- c(3,3)
+basic_info$fracyr_SSB <- fracyr_ssb-2/5 # this should be fixed in prepare_wham_input
+```
+
+We also need to define where each stock can occur on January 1. NAA_where is a n_stocks x n_regions x n_ages array of 1s and 0s telling where each age of each stock can be on January 1.
+```{r, eval = FALSE}
+n_ages <- length(basic_info$ages)
+#each age other than 1 (recruitment) for north stock can be in either region on Jan 1 
+basic_info$NAA_where <- array(1, dim = c(2,2,n_ages))
+basic_info$NAA_where[1,2,1] <- 0 #stock 1, age 1 can't be in region 2 on Jan 1
+basic_info$NAA_where[2,1,] <- 0 #stock 2, any age can't be in region 1 2 on Jan 1 (stock 2 doesn't move) 
+```
+
+---
+
+# Defining movement assumptions
+
+```{r, eval = FALSE}
+move = list(stock_move = c(TRUE,FALSE), separable = TRUE) #north moves, south doesn't
+move$must_move <- array(0,dim = c(2,n_seasons,2))	
+#if north stock in region 2 (south) must move back to region 1 (north) at the end of interval 2 before spawning
+move$must_move[1,2,2] <- 1 #stock 1 must move at the end of season 2 from region 2
+move$can_move <- array(0, dim = c(2,n_seasons,2,2))
+move$can_move[1,c(1,4:5),1,2] <- 1 #only north stock can move in seasons after spawning
+move$can_move[1,2,2,] <- 1 #north stock can (and must) move in last season prior to spawning back to north 
+mus <- array(0, dim = c(2,n_seasons,2,1))
+mus[1,1:n_seasons,1,1] <- 0.3 #initial value proportion moving to south = 0.3 (mean of prior)
+mus[1,1:n_seasons,2,1] <- 0.3 #initial value proportion north to south = 0.3 (not intended to be used)
+move$mean_vals <- mus 
+move$mean_model <- matrix("stock_constant", 2,1) #different constant rates for each stock. (none estimated for southern stock)
+```
+---
+
+# Examine unfit model
+
+```{r, eval = FALSE}
+input_move <- prepare_wham_input(
+	basic_info = basic_info,
+	NAA_re = NAA_list,
+	selectivity = selectivity, 
+	catch_info = catch_info, 
+	index_info = index_info, 
+	M = M_in, 
+	F = F_in, 
+	catchability = q_in,
+	move = move)
+
+nofit_move <- fit_wham(input_move, do.fit = FALSE, do.brps = FALSE)
+```
 ```{r, include = FALSE}
-library("wham", lib.loc = "c:/work/wham/old_packages/lab")
-path_to_examples <- system.file("extdata", package="wham")
-asap3 <- read_asap3_dat(file.path(path_to_examples,"ex1_SNEMAYT.dat"))
-input <- prepare_wham_input(asap3)
+nofit_move <- readRDS(file.path(res_dir,"vign_5_nofit_move.RDS"))
+nofit_move_age <- readRDS(file.path(res_dir,"vign_5_nofit_move_age.RDS"))
+nofit_move_year <- readRDS(file.path(res_dir,"vign_5_nofit_move_year.RDS"))
 ```
 
+---
+
+# Examine unfit model
+
+Look at movement for northern stock at  age 8 each season
+```{r, eval = TRUE}
+#first season
+nofit_move$rep$seasonal_Ps_terminal[1,1,8,,]
+```
+---
+
+# Examine unfit model
+
+```{r, eval = TRUE}
+#second season
+nofit_move$rep$seasonal_Ps_terminal[1,2,8,,]
+```
+---
+
+# Examine unfit model
+
+```{r, eval = TRUE}
+#3rd season
+nofit_move$rep$seasonal_Ps_terminal[1,3,8,,]
+```
+---
+
+# Examine unfit model
+
+```{r, eval = TRUE}
+#4th season
+nofit_move$rep$seasonal_Ps_terminal[1,4,8,,]
+```
+---
+
+# Examine unfit model
+
+```{r, eval = TRUE}
+#5th season
+nofit_move$rep$seasonal_Ps_terminal[1,5,8,,]
+```
+
+---
+
+# Fit the model
+
+Movement configuration in WHAM remains a bit rough. Turns out we need to manually turn off estimation of the south to north movement for stock 1, currently...
 ```{r, eval = FALSE}
-library(wham)
-path_to_examples <- system.file("extdata", package="wham")
-asap3 <- read_asap3_dat(file.path(path_to_examples,"ex1_SNEMAYT.dat"))
-input <- prepare_wham_input(asap3)
-nofit <- fit_wham(input, do.fit = FALSE)
+x <- input_move$par$trans_mu
+x[] <- as.integer(input_move$map$trans_mu)
+x[1,,2,1] <- NA
+input_move$map$trans_mu <- factor(x)
+
+fit_move <- fit_wham(input_move, do.osa = FALSE, do.retro = FALSE, do.sdrep = FALSE, do.brps = FALSE)
 ```
-
-```{r, eval = FALSE}
-tmp.dir <- tempdir(check=TRUE)
-plot_wham_output(nofit, dir.main = tmp.dir)
-
-```
-
----
-
-# Mean model options with example data
-
-```{r, echo = FALSE, out.width="50%", fig.align="center"}
-knitr::include_graphics("day_2_1_nofit_summary.png")
-```
----
-
-# Mean model options with example data
-
-Now we will specify the model to use 3 different mean models for each selectivity block.
-```{r, eval = FALSE}
-# alternative mean models
-selectivity <- list(model = c("double-logistic", "decreasing-logistic", "logistic"))
-selectivity$initial_pars <- list(
-	c(2,0.2,5,0.2), #ascending a50, 1/slope, and descending a50, 1/slope
-	c(3, 0.2), #descending a50 and 1/slope
-	c(3, 0.2)) #ascending a50, 1/slope
-selectivity$fix_pars <- list(NULL, NULL, NULL) #all estimated
-input_0 <- set_selectivity(input, selectivity = selectivity)
-nofit_0 <- fit_wham(input_0, do.fit = FALSE)
-plot_wham_output(nofit_0, dir.main = tmp.dir)
-
-```
----
-
-# Mean model options with example data
-
-.three-column[
-```{r, echo = FALSE, out.width="100%", fig.align="center"}
-knitr::include_graphics("day_2_1_nofit_0_sel_fleet_1.png")
-```
-]
-.three-column[
-```{r, echo = FALSE, out.width="100%", fig.align="center"}
-knitr::include_graphics("day_2_1_nofit_0_sel_index_1.png")
-```
-]
-.three-column[
-```{r, echo = FALSE, out.width="100%", fig.align="center"}
-knitr::include_graphics("day_2_1_nofit_0_sel_index_2.png")
-```
-]
-
----
-
-#Assume age-specific selectivity for fleet
-
-We will fit a  model that lets all age-specific selectivity parameters be estimated for the fleet.
-Annual Fs will also be estimated, so we do not expect convergence, but we can see which age the model thinks should be fully selected.
 ```{r, include = FALSE}
-selectivity <- list(model = c("age-specific", "logistic", "logistic"))
-selectivity$initial_pars <- list(
-  rep(0.5, 6), #start all parameters in the middle
-  c(3, 0.2), 
-  c(3, 0.2))
-selectivity$fix_pars <- list(NULL, NULL, NULL)  #all estimated
-
-input_1 <- set_selectivity(input, selectivity = selectivity)
+fit_move <- readRDS("../temp/vign_5_fit_2_stocks_move.RDS")
+fit_move_age <- readRDS("../temp/vign_5_fit_2_stocks_move_age.RDS")
+fit_move_year <- readRDS("../temp/vign_5_fit_2_stocks_move_year.RDS")
+fit_move_prior <- readRDS("../temp/vign_5_fit_2_stocks_move_prior.RDS")
 ```
-```{r, eval = FALSE}
-selectivity <- list(model = c("age-specific", "logistic", "logistic"))
-selectivity$initial_pars <- list(
-	rep(0.5, 6), #start all parameters in the middle
-	c(3, 0.2), 
-	c(3, 0.2))
-selectivity$fix_pars <- list(NULL, NULL, NULL)  #all estimated
-
-input_1 <- set_selectivity(input, selectivity = selectivity)
-nofit_1 <- fit_wham(input_1, do.fit = FALSE)
-plot_wham_output(nofit_1, dir.main = tmp.dir)
-```
+About 5% movement each season
 ```{r, eval = TRUE}
-#check that all ages are estimated
-temp <- input_1$par$logit_selpars
-temp[] <- input_1$map$logit_selpars
-temp
+fit_move$rep$mu[1,8,1,1,1,2]
 ```
 ---
 
-#Assume age-specific selectivity for fleet
+# Age-specific random effects
 
-.pull-left[
 ```{r, eval = FALSE}
-fit_1 <- fit_wham(input_1, do.sdrep = FALSE, do.osa = FALSE, do.retro = FALSE)
-plot_wham_output(fit_1, dir.main = tmp.dir)
+move_age <- move
+move_age$age_re <- matrix("none",2,1)
+move_age$age_re[1,1] <- "iid"
+
+input_move_age <- prepare_wham_input(
+	basic_info = basic_info,
+	NAA_re = NAA_list,
+	selectivity = selectivity, 
+	catch_info = catch_info, 
+	index_info = index_info, 
+	M = M_in, 
+	F = F_in, 
+	catchability = q_in,
+	move = move_age)
+
+nofit_move_age <- fit_wham(input_move_age, do.fit = FALSE, do.brps = FALSE)
+nofit_move_age$rep$mu[1,1:8,1,1,1,2]
 ```
-]
-.pull-right[
-```{r, echo = FALSE, out.width="100%", fig.align="center"}
-knitr::include_graphics("day_2_1_fit_1_sel_fleet_1.png")
+Age-specific movement rates assuming initial values for fixed effects
+```{r, eval = TRUE, echo = FALSE}
+nofit_move_age$rep$mu[1,1:8,1,1,1,2]
 ```
-]
 ---
 
-# Assume all are age-specific
+# Age-specific random effects
 
-What if we have age-specific selectivity for the fleet and the indices?parameters be estimated for the fleet.
-Here we freely estimate the selectivity parameters for all of these to investigate each age at full selection
+```{r, eval = FALSE}
+x <- input_move_age$par$trans_mu
+x[] <- as.integer(input_move_age$map$trans_mu)
+x[1,,2,1] <- NA
+input_move_age$map$trans_mu <- factor(x)
+input_move_age$par <- fit_move$parList
+fit_move_age <- fit_wham(input_move_age, do.osa = FALSE, do.retro = FALSE, do.sdrep = FALSE, do.brps = FALSE)
+```
+```{r}
+fit_move$opt$obj
+fit_move_age$opt$obj
+#same
+
+#the log(sd) of the RE
+fit_move_age$parList$mu_repars[1,1,1,1,1]
+```
+
+---
+
+# Year-specific random effects
+
+```{r, eval = FALSE}
+move_year <- move
+move_year$year_re <- matrix("none",2,1)
+move_year$year_re[1,1] <- "iid"
+
+input_move_year <- prepare_wham_input(
+	basic_info = basic_info,
+	NAA_re = NAA_list,
+	selectivity = selectivity, 
+	catch_info = catch_info, 
+	index_info = index_info, 
+	M = M_in, 
+	F = F_in, 
+	catchability = q_in,
+	move = move_year)
+
+nofit_move_year <- fit_wham(input_move_year, do.fit = FALSE, do.brps = FALSE)
+#year-specific movement rates assuming initial values for fixed effects
+nofit_move_year$rep$mu[1,8,1,,1,2]
+```
+Year-specific movement rates assuming initial values for fixed effects
+```{r, eval = TRUE, echo = FALSE}
+nofit_move_year$rep$mu[1,8,1,,1,2]
+```
+
+---
+
+# Year-specific random effects
+
+```{r, eval = FALSE}
+x <- input_move_year$par$trans_mu
+x[] <- as.integer(input_move_year$map$trans_mu)
+x[1,,2,1] <- NA
+input_move_year$map$trans_mu <- factor(x)
+input_move_year$par <- fit_move$parList
+fit_move_year <- fit_wham(input_move_year, do.osa = FALSE, do.retro = FALSE, do.sdrep = FALSE, do.brps = FALSE)
+```
+```{r}
+fit_move$opt$obj
+fit_move_year$opt$obj
+#not the same
+
+#the log(sd) of the RE
+fit_move_year$parList$mu_repars[1,1,1,1,1]
+```
+
+---
+
+# Year-specific random effects
+```{r}
+plot(fit_move_year$years,fit_move_year$rep$mu[1,8,1,,1,2], ylab = "Move North to South", xlab = "Year")
+```
+
+---
+
+# Configure a prior distribution for mean movement
+
+```{r, eval = FALSE}
+move_prior <- move
+move_prior$use_prior <- array(0, dim = c(2,n_seasons,2,1))
+#movement is not used in first season, but the parameter is constant across seasons. Could use it in any (single) season
+move_prior$use_prior[1,1,1,1] <- 1
+# sd on logit scale
+move_prior$prior_sigma <- array(0, dim = c(2,n_seasons,2,1))
+move_prior$prior_sigma[1,1,1,1] <- 0.2
+
+input_move_prior <- prepare_wham_input(
+	basic_info = basic_info,
+	NAA_re = NAA_list,
+	selectivity = selectivity, 
+	catch_info = catch_info, 
+	index_info = index_info, 
+	M = M_in, 
+	F = F_in, 
+	catchability = q_in,
+	move = move_prior)
+```
+
+---
+
+# Configure a prior distribution for mean movement
+
+Don't estimate south to north movement
+```{r, eval = FALSE}
+x <- input_move_prior$par$trans_mu
+x[] <- as.integer(input_move_prior$map$trans_mu)
+x[1,,2,1] <- NA
+input_move_prior$map$trans_mu <- factor(x)
+```
+
+For efficiency, start at MLEs except the mean movement rate parameter
+```{r, eval = FALSE}
+#fixed effect estimated in fit_move
+ind <- names(fit_move$parList)[!names(fit_move$parList) %in% "trans_mu"]
+input_move_prior$par[ind] <- fit_move$parList[ind]
+
+fit_move_prior <- fit_wham(input_move_prior, do.osa = FALSE, do.retro = FALSE, do.sdrep = FALSE, do.brps = FALSE)
+```
+Estimate with prior is higher because it is being pulled toward the mean of the prior.
 ```{r, eval = TRUE}
-selectivity$model <- rep("age-specific", 3)
-selectivity$initial_pars <- list(
-	rep(0.5, 6), 
-	rep(0.5, 6), 
-	rep(0.5, 6)) 
-
-input_2 <- set_selectivity(input, selectivity = selectivity)
-temp <- input_2$par$logit_selpars
-temp[] <- input_2$map$logit_selpars
-temp
-```
-
-```{r, eval = FALSE}
-fit_2 <- fit_wham(input_2, do.sdrep = FALSE, do.osa = FALSE, do.retro = FALSE)
-plot_wham_output(fit_1, dir.main = tmp.dir)
-```
----
-
-# Assume all are age-specific
-.three-column[
-```{r, echo = FALSE, out.width="100%", fig.align="center"}
-knitr::include_graphics("day_2_1_fit_2_sel_fleet_1.png")
-```
-]
-.three-column[
-```{r, echo = FALSE, out.width="100%", fig.align="center"}
-knitr::include_graphics("day_2_1_fit_2_sel_index_1.png")
-```
-]
-.three-column[
-```{r, echo = FALSE, out.width="100%", fig.align="center"}
-knitr::include_graphics("day_2_1_fit_2_sel_index_2.png")
-```
-]
-
----
-
-# Assume all are age-specific
-
-Now fix selectivity at 1 for the ages at full selection
-
-```{r, eval = FALSE}
-selectivity$initial_pars <- list(
-	c(0.5,0.5,0.5,1,0.5, 0.5),
-	c(0.5,0.5,0.5,1,0.5, 0.5),
-	c(0.5,0.5,0.5,1,0.5, 0.5))
-selectivity$fix_pars <- list(4,4,4)
-input_3 <- set_selectivity(input, selectivity = selectivity)
-
-fit_3 <- fit_wham(input_3, do.sdrep = TRUE, do.osa = FALSE, do.retro = FALSE)
-plot_wham_output(fit_3, dir.main = tmp.dir)
-```
----
-
-# Assume all are age-specific
-
-.three-column[
-```{r, echo = FALSE, out.width="100%", fig.align="center"}
-knitr::include_graphics("day_2_1_fit_3_sel_fleet_1.png")
-```
-]
-.three-column[
-```{r, echo = FALSE, out.width="100%", fig.align="center"}
-knitr::include_graphics("day_2_1_fit_3_sel_index_1.png")
-```
-]
-.three-column[
-```{r, echo = FALSE, out.width="100%", fig.align="center"}
-knitr::include_graphics("day_2_1_fit_3_sel_index_2.png")
-```
-]
-
----
-
-# Time and age-varying selectivity
-
-We can also freely estimate time and age varying Fishing mortality.
-Can be of interest to see if there are periods where the age at full selection is different.
-
-* We force the mean of the random effects to be the same for all ages.
-* Fix F at a plausible maximum value (F=5), then $FAA_{y,a} = F * sel_{y,a}$
-* mean selectivity should be estimated to scale FAA appropriately.
-
-```{r, eval = FALSE}
-F_opts <- list(
-	F = cbind(rep(5,input$data$n_years_model)),
-	map_F = cbind(rep(NA, input$data$n_years_model)))
-
-selectivity$re <- c("iid", "none", "none")
-selectivity$fix_pars <- NULL
-selectivity$initial_pars[[1]] <- rep(0.1,6)
-selectivity$map_pars <- list(c(1,1,1,1,1,1),c(1:3,NA,4:5), c(1:3,NA,4:5))
-
-input_4 <- set_selectivity(input, selectivity = selectivity)
-input_4 <- set_F(input_4, F_opts)
-# This one takes a while
-fit_4 <- fit_wham(input_4, do.sdrep = TRUE, do.osa = FALSE, do.retro = FALSE)
-plot_wham_output(fit_4, dir.main = tmp.dir)
+#estimated movement
+fit_move$rep$mu[1,8,1,1,1,2]
+fit_move_prior$rep$mu[1,8,1,1,1,2]
 ```
 
 ---
 
-# Time and age-varying selectivity
-
-* Selectivity seems to generally be greatest for ages 4-5
-* Highly variable and often large uncertainty in fully-selected $F$
-
-.three-column[
-```{r, echo = FALSE, out.width="100%", fig.align="center"}
-knitr::include_graphics("day_2_1_fit_4_selAA.png")
-```
-]
-.three-column[
-```{r, echo = FALSE, out.width="100%", fig.align="center"}
-knitr::include_graphics("day_2_1_fit_4_full_F.png")
-```
-]
-.three-column[
-```{r, echo = FALSE, out.width="100%", fig.align="center"}
-knitr::include_graphics("day_2_1_fit_4_CV.png")
-```
-]
-
-
----
-
-# Time and age-varying selectivity
-
-Now fix age at full selection at 5 for fleet selectivity
-
-```{r, eval = FALSE}
-selectivity <- list(model = rep("age-specific", 3))
-selectivity$re <- c("iid", "none", "none")
-selectivity$fix_pars <- NULL
-selectivity$initial_pars <- list(
-  c(rep(0.5,4),1,0.5),
-  c(0.5,0.5,0.5,1,0.5, 0.5),
-  c(0.5,0.5,0.5,1,0.5, 0.5))
-selectivity$map_pars <- list(c(1,1,1,1,NA,1),c(1:3,NA,4:5), c(1:3,NA,4:5))
-input_5 <- set_selectivity(input, selectivity = selectivity)
-fit_5 <- fit_wham(input_5, do.sdrep = TRUE, do.osa = FALSE, do.retro = FALSE)
-plot_wham_output(fit_5, dir.main = tmp.dir)
-```
-
----
-
-# Time and age-varying selectivity
-
-* Selectivity seems to generally be greatest for ages 4-5
-* Highly variable and often large uncertainty in fully-selected $F$
-
-.three-column[
-```{r, echo = FALSE, out.width="100%", fig.align="center"}
-knitr::include_graphics("day_2_1_fit_5_selAA.png")
-```
-]
-.three-column[
-```{r, echo = FALSE, out.width="100%", fig.align="center"}
-knitr::include_graphics("day_2_1_fit_5_full_F.png")
-```
-]
-.three-column[
-```{r, echo = FALSE, out.width="100%", fig.align="center"}
-knitr::include_graphics("day_2_1_fit_5_CV.png")
-```
-]
-
----
-
-# AR1 Time-varying selectivity
-
-Here we demonstrate an autocorrelated annual random effect applied to all ages
+# Northern stock by region
 
 .pull-left[
-```{r, eval = FALSE}
-selectivity <- list(model = rep("age-specific", 3))
-selectivity$re <- c("ar1_y", "none", "none")
-selectivity$fix_pars <- NULL
-selectivity$initial_pars <- list(
-  c(rep(0.5,4),1,0.5),
-  c(0.5,0.5,0.5,1,0.5, 0.5),
-  c(0.5,0.5,0.5,1,0.5, 0.5))
-selectivity$map_pars <- list(c(1:4,NA,5),c(1:3,NA,4:5), c(1:3,NA,4:5))
-input_6 <- set_selectivity(input, selectivity = selectivity)
-fit_6 <- fit_wham(input_6, do.sdrep = TRUE, do.osa = FALSE, do.retro = FALSE)
-plot_wham_output(fit_6, dir.main = tmp.dir)
+Constant movement
+```{r, echo = FALSE, out.width="100%", fig.align="center"}
+prop_AA <- t(sapply(1:33, function(y) sapply(2:8, function(x) fit_move$rep$NAA[1,2,y,x]/sum(fit_move$rep$NAA[1,,y,x]))))
+matplot(fit_move$years, prop_AA, type = 'l', ylab = "Proportion of northern stock in the south", xlab = "Year", lty = 1, col = 1:7)
+legend("topright", legend = paste0("Age ", 2:8), col = 1:7, lty  = 1)
 ```
 ]
 .pull-right[
+Year-specific movement
 ```{r, echo = FALSE, out.width="100%", fig.align="center"}
-knitr::include_graphics("day_2_1_fit_6_selAA.png")
+prop_AA <- t(sapply(1:33, function(y) sapply(2:8, function(x) fit_move_year$rep$NAA[1,2,y,x]/sum(fit_move_year$rep$NAA[1,,y,x]))))
+matplot(fit_move$years, prop_AA, type = 'l', ylab = "Proportion of northern stock in the south", xlab = "Year", lty = 1, col = 1:7)
+legend("topright", legend = paste0("Age ", 2:8), col = 1:7, lty  = 1)
 ```
 ]
-
----
-
-# AR1 Age-varying selectivity
-
-Here we demonstrate autocorrelated random effects across age, but constant across time
-
-.pull-left[
-```{r, eval = FALSE}
-selectivity$re <- c("ar1", "none", "none")
-selectivity$fix_pars <- NULL
-selectivity$initial_pars <- list(
-  c(rep(0.5,4),1,0.5),
-  c(0.5,0.5,0.5,1,0.5, 0.5),
-  c(0.5,0.5,0.5,1,0.5, 0.5))
-selectivity$map_pars <- list(c(1,1,1,1,NA,1),c(1:3,NA,4:5), c(1:3,NA,4:5))
-input_7 <- set_selectivity(input, selectivity = selectivity)
-fit_7 <- fit_wham(input_7, do.sdrep = TRUE, do.osa = FALSE, do.retro = FALSE)
-plot_wham_output(fit_7, dir.main = tmp.dir)
-```
-]
-.pull-right[
-```{r, echo = FALSE, out.width="100%", fig.align="center"}
-knitr::include_graphics("day_2_1_fit_7_selAA.png")
-```
-]
-
-# 2DAR1 age and time-varying selectivity
-
-Here we demonstrate estimating autocorrelation across age and time
-
-.pull-left[
-```{r, eval = FALSE}
-selectivity$re <- c("2dar1", "none", "none")
-selectivity$fix_pars <- NULL
-selectivity$initial_pars <- list(
-  c(rep(0.5,4),1,0.5),
-  c(0.5,0.5,0.5,1,0.5, 0.5),
-  c(0.5,0.5,0.5,1,0.5, 0.5))
-selectivity$map_pars <- list(c(1,1,1,1,NA,1),c(1:3,NA,4:5), c(1:3,NA,4:5))
-input_8 <- set_selectivity(input, selectivity = selectivity)
-fit_8 <- fit_wham(input_8, do.sdrep = TRUE, do.osa = FALSE, do.retro = FALSE)
-plot_wham_output(fit_8, dir.main = tmp.dir)
-```
-]
-.pull-right[
-```{r, echo = FALSE, out.width="100%", fig.align="center"}
-knitr::include_graphics("day_2_1_fit_8_selAA.png")
-```
-]
-
----
-
-# Random effects for logistic selectivity
-
-* it is generally not advised to try to estimate autocorrelation of parameters within a year (there are just 2 parameters)
- * this would exclude `ar1` and `2dar1` options
-* we assume independent random effects for both logistic selectivity parameters
-
-.pull-left[
-```{r, eval = FALSE}
-selectivity <- list(model = rep("logistic", 3))
-selectivity$re <- c("iid", "none", "none")
-selectivity$fix_pars <- NULL
-selectivity$initial_pars <- list(
-  c(3, 0.2), 
-  c(3, 0.2), 
-  c(3, 0.2)) 
-input_9 <- set_selectivity(input, selectivity = selectivity)
-fit_9 <- fit_wham(input_9, do.sdrep = TRUE, do.osa = FALSE, do.retro = FALSE)
-saveRDS(fit_9, file.path("temp", "day_2_1_fit_9.RDS"))
-plot_wham_output(fit_9, dir.main = tmp.dir)
-```
-]
-.pull-right[
-```{r, echo = FALSE, out.width="80%", fig.align="center"}
-knitr::include_graphics("day_2_1_fit_9_selAA.png")
-```
-]
-

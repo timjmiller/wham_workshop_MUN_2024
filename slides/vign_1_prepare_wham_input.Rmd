@@ -186,7 +186,7 @@ selblock_pointer_indices <- input$data$selblock_pointer_indices
 
 # Without ASAP Input
 
-Now we are ready to build the necessary arguments required by `prepapre_wham_input`. 
+Now we are ready to build the necessary arguments required by `prepare_wham_input`. 
 
 First is the `basic_info` argument which includes biological information. Note, we now provide information on the number of stocks, regions, and intervals, but default values are the same.
 ```{r, eval = TRUE}
