@@ -71,12 +71,12 @@ The `ecov` argument to `prepare_wham_input` or `set_ecov` has these elements to 
 * `logsigma`: configuration of covariate observation error:
  * 1) matrix of the log(sd) for each covariate observations (n_years x n_covariates)
  * 2) vector of single constant observation log(sd) for each covariate
- * 3) `est_1`: Estimate a constant observation sd for each covariate
- * 4) `est_re`: Estimate a normally distributed random effect (mean and sd) for the log(sd) for each covariate
+ * 3) `"est_1"`: Estimate a constant observation sd for each covariate
+ * 4) `"est_re"`: Estimate a normally distributed random effect (mean and sd) for the log(sd) for each covariate
  * 5) a list with two elements where the first is 1 or 2 and the second is 3 or 4.
 * `year`: years corresponding to the rows of `mean`
 * `use_obs`: T/F (matrix) on whether to use the observations for each covariate.
-* `process_model`: `rw` (random walk), `ar1`, or `NA` (do not fit)
+* `process_model`: `"rw"` (random walk), `"ar1"`, or `NA` (do not fit)
 * `process_mean_vals`,`process_sig_vals`,`process_cor_vals`: intial values for process distribution parameters
 
 ---
@@ -84,11 +84,11 @@ The `ecov` argument to `prepare_wham_input` or `set_ecov` has these elements to 
 # Environmental covariate effects
 
 * `recruitment_how`: character strings ("type-lag-order") configuring the effect type for each covariate on recruitment
- * type: 'none': no effect (but still estimate the state-space model for the covariate and observation)
- * type: `controlling`,`limiting`,`lethal`,`masking`,`directive` different effects on S-R function
- * lag: `lag-0`, `lag-1`,...
- * order: `linear` = `poly-1`, `poly-2`,... 
- * e.g.: "limiting-lag-1-poly-2" would model the covariate would have a limiting affecting recruitment the next year (lag = 1) as a second order orthogonal polynomial ($b_0 + b_1*ecov + b_2*ecov^2$)
+ * type: `"none"`: no effect (but still estimate the state-space model for the covariate and observation)
+ * type: `"controlling"`,`"limiting"`,`"lethal"`,`"masking"`,`"directive"` different effects on S-R function
+ * lag: `"lag-0"`, `"lag-1"`,...
+ * order: `"linear"` = `"poly-1"`, `"poly-2"`,... 
+ * e.g.: `"limiting-lag-1-poly-2"` would model the covariate would have a limiting affecting recruitment the next year (lag = 1) as a second order orthogonal polynomial: $b_0 + b_1  ecov +  b_2  ecov^2$
 * `M_how`: character strings ("lag-order") for effect on natural mortality
 * `M_effect_map`: integer array indicating which estimated effects are common by age,stock,region
 * `q_how`: character strings ("lag-order") for effect on catchability
@@ -393,7 +393,7 @@ max(abs(fit_4$final_gradient))
 
 # Fitting efects on recruitment and M
 
-But if we start out model at MLEs from fit_3, converges fine:
+But if we start out model at MLEs from `fit_3`, converges fine:
 ```{r, eval = FALSE}
 #a rough check that all parameter elements have the same size.
 all(sort(sapply(input_3$par, length)) == sort(sapply(input_4$par, length)))

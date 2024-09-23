@@ -68,7 +68,7 @@ input <- prepare_wham_input(asap3, recruit_model=2, model_name="Ex 1: SNEMA Yell
                               NAA_re = list(sigma="rec+1", cor="iid"))
 ```
 ```{r, include = FALSE}
-library("wham", lib.loc = "c:/work/wham/old_packages/lab")
+library("wham")#, lib.loc = "c:/work/wham/old_packages/lab")
 wham.dir <- find.package("wham")
 asap3 <- read_asap3_dat(file.path(wham.dir,"extdata","ex7_SNEMAYT.dat"))
 input <- prepare_wham_input(asap3, recruit_model=2, model_name="Ex 1: SNEMA Yellowtail Flounder",
@@ -175,11 +175,13 @@ knitr::include_graphics("figs/vign_8_fit_warning.png")
 # Helping your model converge
 
 When a fit doesn't converge
-* it is often one of these two things:
-    * 1) the data cannot reliably estimate the assumed level of complexity
+* If the model function returns an NA immediately as in the above example, another common fix is increasing the initial value for mean recruitment and/or all log_NAA parameters
+    * Combination of $M$ and the observed catch cannot be taken from the initial January 1 NAA. 
+* If model optimization finishes, it is often one of these two things:
+    * the data cannot reliably estimate the assumed level of complexity
         * Including too many sources of process error can result in variance parameter estimation going to zero which will result in poor convergence.
-    * 2) the starting values have not led to the global minimum
+    * the starting values have not led to the global minimum
         * using `jitter_wham` with user-supplied starting values might improve success
         * using MLEs from a simpler model can also help
-* running `check_convergence` may help determine which parameter is problematic
-    * it is often selectivity and/or initial NAA parameters!
+    * running `check_convergence` may help determine which parameter is problematic
+        * it is often selectivity, and/or initial NAA parameters!
