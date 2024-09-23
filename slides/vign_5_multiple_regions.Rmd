@@ -312,11 +312,11 @@ The `move` argument to `prepare_wham_input` or `set_move` has these elements to 
 * `stock_move`: T/F whether each stock can move
 * `separable`: T/F whether movement for each stock should be modeled separably from mortality or both occuring simultaneously
 * `mean_model`: character matrix (n_regions x n_regions - 1) for fixed effects options (mean and possibly variance) for each movement parameter are
- * `none`: (default) no movement between regions
- * `constant`: single movement rate to each region shared across all stocks, seasons, ages, years
- * `season`: season-specific movement rates to each region shared across all stocks, ages, years
- * `stock_constant`: stock-specfic movement rate to each region shared across all seasons, ages, years
- * `stock_season`: stock- and season-specfic movement rate to each region shared across all ages, years
+ * `"none"`: (default) no movement between regions
+ * `"constant"`: single movement rate to each region shared across all stocks, seasons, ages, years
+ * `"season"`: season-specific movement rates to each region shared across all stocks, ages, years
+ * `"stock_constant"`: stock-specfic movement rate to each region shared across all seasons, ages, years
+ * `"stock_season"`: stock- and season-specfic movement rate to each region shared across all ages, years
 
 ---
 
@@ -325,13 +325,13 @@ The `move` argument to `prepare_wham_input` or `set_move` has these elements to 
 The `move` argument to `prepare_wham_input` or `set_move` has these elements to configure selectivity.
 
 * `age_re`: character matrix (n_regions x (n_regions-1)) for age random effects options (for each mean parameter defined in move$mean_model)
- * `none`: (default) no movement rate random effects by age
- * `iid`: independent movement rate random effects by age
- * `ar1`: first order autoregressive correlation of movement rate random effects by age.
+ * `"none"`: (default) no movement rate random effects by age
+ * `"iid"`: independent movement rate random effects by age
+ * `"ar1"`: first order autoregressive correlation of movement rate random effects by age.
 * `year_re`: character matrix (n_regions x (n_regions-1)) for year random effects options (for each mean parameter defined in move$mean_model)
- * `none`: (default) no movement rate random effects by year
- * `iid`: independent movement rate random effects by year
- * `ar1`: first order autoregressive correlation of movement rate random effects by year.
+ * `"none"`: (default) no movement rate random effects by year
+ * `"iid"`: independent movement rate random effects by year
+ * `"ar1"`: first order autoregressive correlation of movement rate random effects by year.
 
 ---
 
@@ -392,7 +392,7 @@ move$can_move[1,c(1,4:5),1,2] <- 1 #only north stock can move in seasons after s
 move$can_move[1,2,2,] <- 1 #north stock can (and must) move in last season prior to spawning back to north 
 mus <- array(0, dim = c(2,n_seasons,2,1))
 mus[1,1:n_seasons,1,1] <- 0.3 #initial value proportion moving to south = 0.3 (mean of prior)
-mus[1,1:n_seasons,2,1] <- 0.3 #initial value proportion north to south = 0.3 (not intended to be used)
+mus[1,1:n_seasons,2,1] <- 0.3 #initial value proportion moving south to north = 0.3 (not intended to be used)
 move$mean_vals <- mus 
 move$mean_model <- matrix("stock_constant", 2,1) #different constant rates for each stock. (none estimated for southern stock)
 ```
@@ -592,6 +592,28 @@ plot(fit_move_year$years,fit_move_year$rep$mu[1,8,1,,1,2], ylab = "Move North to
 
 ---
 
+# Northern stock by region
+
+.pull-left[
+Constant movement
+```{r, echo = FALSE, out.width="100%", fig.align="center"}
+prop_AA <- t(sapply(1:33, function(y) sapply(2:8, function(x) fit_move$rep$NAA[1,2,y,x]/sum(fit_move$rep$NAA[1,,y,x]))))
+matplot(fit_move$years, prop_AA, type = 'l', ylab = "Proportion of northern stock in the south", xlab = "Year", lty = 1, col = 1:7)
+legend("topright", legend = paste0("Age ", 2:8), col = 1:7, lty  = 1)
+```
+]
+.pull-right[
+Year-specific movement
+```{r, echo = FALSE, out.width="100%", fig.align="center"}
+prop_AA <- t(sapply(1:33, function(y) sapply(2:8, function(x) fit_move_year$rep$NAA[1,2,y,x]/sum(fit_move_year$rep$NAA[1,,y,x]))))
+matplot(fit_move$years, prop_AA, type = 'l', ylab = "Proportion of northern stock in the south", xlab = "Year", lty = 1, col = 1:7)
+legend("topright", legend = paste0("Age ", 2:8), col = 1:7, lty  = 1)
+```
+]
+
+
+---
+
 # Configure a prior distribution for mean movement
 
 ```{r, eval = FALSE}
@@ -642,23 +664,3 @@ fit_move$rep$mu[1,8,1,1,1,2]
 fit_move_prior$rep$mu[1,8,1,1,1,2]
 ```
 
----
-
-# Northern stock by region
-
-.pull-left[
-Constant movement
-```{r, echo = FALSE, out.width="100%", fig.align="center"}
-prop_AA <- t(sapply(1:33, function(y) sapply(2:8, function(x) fit_move$rep$NAA[1,2,y,x]/sum(fit_move$rep$NAA[1,,y,x]))))
-matplot(fit_move$years, prop_AA, type = 'l', ylab = "Proportion of northern stock in the south", xlab = "Year", lty = 1, col = 1:7)
-legend("topright", legend = paste0("Age ", 2:8), col = 1:7, lty  = 1)
-```
-]
-.pull-right[
-Year-specific movement
-```{r, echo = FALSE, out.width="100%", fig.align="center"}
-prop_AA <- t(sapply(1:33, function(y) sapply(2:8, function(x) fit_move_year$rep$NAA[1,2,y,x]/sum(fit_move_year$rep$NAA[1,,y,x]))))
-matplot(fit_move$years, prop_AA, type = 'l', ylab = "Proportion of northern stock in the south", xlab = "Year", lty = 1, col = 1:7)
-legend("topright", legend = paste0("Age ", 2:8), col = 1:7, lty  = 1)
-```
-]

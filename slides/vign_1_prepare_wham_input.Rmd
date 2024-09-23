@@ -256,7 +256,7 @@ M_in <- list(
 )
 ```
 
-Specify using logistic selectivity for all 6 selectivity blocks and initial values for a50 and inverse of slope. Fixing selectivity for the last two selectivity blocks.
+Specify using logistic selectivity for all 6 selectivity blocks and initial values for $a_{50}$ and inverse of slope. Fixing selectivity for the last two selectivity blocks.
 ```{r, eval = TRUE}
 selectivity <- list(
   model = rep("logistic",6), n_selblocks = 6,

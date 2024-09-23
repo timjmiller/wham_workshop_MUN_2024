@@ -74,7 +74,7 @@ options(width = 50)
  * Calculating parameter uncertainty: `do.sdrep = TRUE`
  * Fitting Retrospective peels: `do.retro = TRUE`
  * Calculating One-step-ahead residuals: `do.osa = TRUE`
- * elements of a fitted model object
+ * Elements of a fitted model object
 * Plots and Tables: `plot_wham_output`
 ---
 
@@ -112,8 +112,8 @@ The first 10 elements of the unfit model object are produced by  the call to `TM
 * `par`: the initial values of the fixed effects parameters that will be estimated if `do.fit=TRUE`
 * `fn`: The function of `par` that calculates the negative log-likelihood. Minimized by `nlminb` if `do.fit = TRUE`
 * `gr`: The function of `par` that calculates the gradient of the negative log-likelihood function. Used by `nlminb` to search for the minimum.
-* `report`: A function of `par` that generates a list of variables the C++ code  to provide given the value of `par`.
-* `simulate`: A function of `par` that will simulate any variables and observations the C++ code is specified to simulate given teh value of `par`
+* `report`: A function of `par` that generates a list of derived variables the C++ code is specified to provide.
+* `simulate`: A function of `par` that will simulate any variables and observations the C++ code is specified to simulate given the value of `par`
 
 ---
 
@@ -126,8 +126,8 @@ Other non-TMB elements:
 * `call`: the expression for the call to `fit_wham`
 * `wham_commit`,`wham_version`: stores the git commit and release version of the package that is being used.
 * `TMB_commit`,`TMB_version`: stores the git commit and release version of the TMB package that is being used.
-* `rep`: the list of reported variables returned by nofit_asap3$report(). Analogous to the `*.rep` files produced using ADMB.
-* `is_sdrep`: logical flag of whether TMB::sdreport() has been called for this model. Should be FALSE for an unfit model.
+* `rep`: the list of reported variables returned by `$report()`. Analogous to the `*.rep` files produced using ADMB.
+* `is_sdrep`: logical flag of whether `TMB::sdreport()` has been called for this model. Should be FALSE for an unfit model.
 * `parList`: list of all parameter values (whether used or not) that is identical in structure to the list of `input$par`
 
 ---
@@ -136,13 +136,17 @@ Other non-TMB elements:
 ```{r, include = FALSE}
 fit_asap <- fit_wham(input_asap, do.retro = FALSE, do.osa = FALSE, do.sdrep = FALSE)
 ```
-The most minimal use of fit_wham turns off all post-fitting features:
+The most minimal use of fit_wham (with `do.fit = TRUE`) turns off all post-fitting features:
 ```{r, eval = FALSE}
 fit_asap <- fit_wham(input_asap, do.retro = FALSE, do.osa = FALSE, do.sdrep = FALSE, do.brps = FALSE)
 ```
 ```{r, eval = TRUE}
 names(fit_asap)
 ```
+---
+
+# A basic call to fit_wham
+
 Further elements added by fitting
 * `opt`: the results returned the call to `nlminb`, par, objective, convergence, etc.
 * `date`: date/time the fit was completed.
@@ -155,7 +159,7 @@ Further elements added by fitting
 
 # Calculating standard errors
 
-Starting in WHAM version 1.2.0, it is easy to add standard error estimation to a model that has already been fit:
+It is easy to add standard error estimation to a model that has already been fit:
 ```{r, include = FALSE}
 fit_asap <- do_sdreport(fit_asap)
 ```
@@ -186,7 +190,7 @@ par_se_list <-TMB:::as.list.sdreport(fit_asap$sdrep, what = "Std")
 rep_est_list <- TMB:::as.list.sdreport(fit_asap$sdrep, what = "Est", report = TRUE)
 rep_se_list <- TMB:::as.list.sdreport(fit_asap$sdrep, what = "Std", report = TRUE)
 ```
-If TMB is loaded
+...and if TMB is loaded...
 ```{r, eval = FALSE}
 library(TMB)
 par_est_list <- as.list(fit_asap$sdrep, what = "Est")
@@ -196,15 +200,21 @@ par_est_list <- as.list(fit_asap$sdrep, what = "Est")
 
 # Calculating standard errors
 
-`log_NAA` is an array (n_stocks x n_regions x n_years x n_ages) of parameters for log abundance at age.
-
+`log_NAA` is an array (n_stocks x n_regions x n_years-1 x n_ages) of parameters for log abundance at age parameters.
+ * annual recruitment could be fixed or random effects
+ * numbers at older ages can be random effects (or not used)
 For this model, annual recruitments are the only estimated parameters (as fixed effects).
 ```{r}
 dim(par_est_list$log_NAA)
 par_est_list$log_NAA[1,1,1:5,]
+```
+---
+
+# Calculating standard errors
+The log abundance at ages older than 1 do not have a standard error estimated because they are fixed and unused.
+```{r}
 par_se_list$log_NAA[1,1,1:5,]
 ```
-The log abundance at ages older than 1 do not have a standard error estimated because they are fixed and unused.
 
 ---
 
@@ -214,12 +224,12 @@ fit_asap <- do_reference_points(fit_asap, do.sdrep = TRUE)
 fit_asap$peels <- retro(fit_asap)
 fit_asap <- make_osa_residuals(fit_asap)
 ```
-Starting in WHAM version 1.2.0, it is easy to add reference reporting to a model that has already been fit:
+It is also easy to add reference reporting to a model that has already been fit:
 ```{r, eval = FALSE}
 fit_asap <- do_reference_points(fit_asap, do.sdrep = TRUE)
 ```
 
-There are also functions for adding retro peels and one-step-ahead residuals
+and there are also functions for adding retro peels and one-step-ahead residuals
 ```{r, eval = FALSE}
 fit_asap$peels <- retro(fit_asap)
 fit_asap <- make_osa_residuals(fit_asap)
@@ -229,7 +239,7 @@ fit_asap <- make_osa_residuals(fit_asap)
 
 # Plotting output
 
-WHAM allows alternative approaches to creating files of plots and tables using `plot_wham_output`.
+WHAM allows alternative output types when creating plots and tables using `plot_wham_output`.
 The default call is
 ```{r, eval = FALSE}
 plot_wham_output(mod, dir.main = getwd(), out.type = 'html', res = 72, plot.opts = NULL)
@@ -238,7 +248,7 @@ plot_wham_output(mod, dir.main = getwd(), out.type = 'html', res = 72, plot.opts
 * `dir.main` is the directory where save all files
 * `out.type` tells whether to create html or pdf summary files, or just individual png plot files.
 
-From version 1.2.0, `out.type = "html"` will use Rmarkdown and pandoc to create a self-contained html file of both plots and tables that can be moved, shared, and viewed at any time in a browser.
+`out.type = "html"` will use Rmarkdown and pandoc to create a self-contained html file of both plots and tables that can be moved, shared, and viewed at any time in a browser.
 
 ---
 

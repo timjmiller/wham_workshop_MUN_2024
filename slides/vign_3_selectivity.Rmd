@@ -67,10 +67,10 @@ The selectivity argument to `prepare_wham_input` or `set_selectivity` has these 
 
 * `n_selblocks`: number of selectivity blocks.
 * `model`: character vector specifying which of 4 options for the mean model to use for each selectivity block
- * `age-specific`: a different parameter for each age class
- * `logistic`: 2 parameters: a50 and 1/slope
- * `double-logistic`: 4 parameters: increasing a50 and 1/slope and decreasing a50 and 1/slope
- * `decreasing-logistic`: 2 parameters decreasing a50 and 1/slope
+ * `"age-specific"`: a different parameter for each age class
+ * `"logistic"`: 2 parameters: $a_{50}$ and (inverse) slope
+ * `"double-logistic"`: 4 parameters: increasing $a_{50}$ and slope and decreasing $a_{50}$ and slope
+ * `"decreasing-logistic"`: 2 parameters decreasing $a_{50}$ and slope
 * `initial_pars`: initial values to use for each selectivity parameter
 * `fix_pars`: which selectivity parameters to fix at initial values
 * `par_min`, `par_max`: lower, upper bounds to use for each selectivity parameter
@@ -82,10 +82,10 @@ The selectivity argument to `prepare_wham_input` or `set_selectivity` has these 
 
 * `re`: character vector specifying which of 5 options to model random effects for each selectivity block,
  * `none`: well, no random effects
- * `iid`: independent annual and mean parameter-specific random effects. E.g., time and age varying for `age-specific`
- * `ar1`: autocorrelated random effects for mean parameters that are constant over time
- * `ar1_y`: a single vector of annual autocorrelated random effects used for all mean parameters.
- * `2dar1`: like `iid`, but assumes different autocorrelation across mean parameters and years.
+ * `"iid"`: independent annual and mean parameter-specific random effects. E.g., time and age varying for `"age-specific"`
+ * `"ar1"`: autocorrelated random effects for mean parameters that are constant over time
+ * `"ar1_y"`: a single vector of annual autocorrelated random effects used for all mean parameters.
+ * `"2dar1"`: like `"iid"`, but assumes different autocorrelation across mean parameters and years.
 * `sigma_vals`: initial values for random effects standard deviation parameters.
 * `map_sigma`: fix or estimate `sigma_vals` parameters uniquely or commonly
 * `cor_vals`: initial values for random effects autocorrelation parameters.
@@ -168,7 +168,7 @@ knitr::include_graphics(here::here("slides", "figs","vign_3_nofit_0_sel_index_2.
 #Assume age-specific selectivity for fleet
 
 We will fit a  model that lets all age-specific selectivity parameters be estimated for the fleet.
-Annual Fs will also be estimated, so we do not expect convergence, but we can see which age the model thinks should be fully selected.
+Annual $F$ will also be estimated, so we do not expect convergence, but we can see which age the model thinks should be fully selected.
 ```{r, include = FALSE}
 selectivity <- list(model = c("age-specific", "logistic", "logistic"))
 selectivity$initial_pars <- list(
@@ -216,8 +216,9 @@ knitr::include_graphics(here::here("slides", "figs","vign_3_fit_1_sel_fleet_1.pn
 
 # Assume all are age-specific
 
-What if we have age-specific selectivity for the fleet and the indices?parameters be estimated for the fleet.
-Here we freely estimate the selectivity parameters for all of these to investigate each age at full selection
+What if we have age-specific selectivity for the fleet and the indices?
+
+Here we freely estimate the selectivity parameters for all of these to investigate each age at full selection.
 ```{r, eval = TRUE}
 selectivity$model <- rep("age-specific", 3)
 selectivity$initial_pars <- list(
@@ -295,11 +296,11 @@ knitr::include_graphics(here::here("slides", "figs","vign_3_fit_3_sel_index_2.pn
 
 # Time and age-varying selectivity
 
-We can also freely estimate time and age varying Fishing mortality.
+We can also freely estimate time and age varying $F$.
 Can be of interest to see if there are periods where the age at full selection is different.
 
 * We force the mean of the random effects to be the same for all ages.
-* Fix F at a plausible maximum value (F=5), then $FAA_{y,a} = F * sel_{y,a}$
+* Fix $F$ at a plausible maximum value ($F=5$), then $F_{y,a} = F * sel_{y,a}$
 * mean selectivity should be estimated to scale FAA appropriately.
 
 ```{r, eval = FALSE}
@@ -468,7 +469,7 @@ knitr::include_graphics(here::here("slides", "figs","vign_3_fit_8_selAA.png"))
 # Random effects for logistic selectivity
 
 * it is generally not advised to try to estimate autocorrelation of parameters within a year (there are just 2 parameters)
- * this would exclude `ar1` and `2dar1` options
+ * this would exclude `"ar1"` and `"2dar1"` options
 * we assume independent random effects for both logistic selectivity parameters
 
 .pull-left[

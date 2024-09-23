@@ -75,10 +75,10 @@ The `NAA_re` argument to `prepare_wham_input` or `set_NAA` has these elements to
  * (4) a mean Ricker function of SSB and annual random effects
 * `recruit_pars`: initial values to use for mean recruitment parameters.
 * `N1_model`: character vector specifying which of 4 options for the initial abundance at age
- * `age-specific`: a different parameter for each age class
- * `equilibrium`: 2 parameters: initial recruitment and a fully-selected F needed to calculate an equilibrium distribution of abundance at age.
- * `iid-re`: Estimate a mean abundance with independent random effects for each age.
- * `ar1-re`: Estimate a mean abundance with autocrrelated random effects for each age.
+ * `"age-specific"`: a different parameter for each age class
+ * `"equilibrium"`: 2 parameters: initial recruitment and a fully-selected $F$ needed to calculate an equilibrium distribution of abundance at age.
+ * `"iid-re"`: Estimate a mean abundance with independent random effects for each age.
+ * `"ar1-re"`: Estimate a mean abundance with autocrrelated random effects for each age.
 * `N1_pars`: initial parameter values to use for the initial abundance at age.
 
 ---
@@ -90,10 +90,10 @@ The `NAA_re` argument to `prepare_wham_input` or `set_NAA` has these elements to
 * `sigma_vals`: initial values to use for standard deviations of random effects
 * `sigma_map`: to fix or estimate `sigma_vals` parameters uniquely or commonly
 * `cor`: how to model auto-correlation of random effects
- * `iid`: uncorrelated by year and age
- * `ar1_y`: correlated by year, independent by age
- * `ar1_a`: correlated by age, independent by year
- * `2dar1`: correlated by year and age
+ * `"iid"`: uncorrelated by year and age
+ * `"ar1_y"`: correlated by year, independent by age
+ * `"ar1_a"`: correlated by age, independent by year
+ * `"2dar1"`: correlated by year and age
 * `cor_vals`: initial values to use for autocorrelation parameters
 * `decouple_recruitment`: Whether to make recruitment random effects separate from those for survival transitions at older ages.
 
@@ -122,11 +122,11 @@ plot_wham_output(fit_0, dir.main = tmp.dir)
 input_1 <- set_NAA(input, NAA_re = list(N1_model = "equilibrium"))
 fit_1 <- fit_wham(input_1, do.retro=FALSE, do.osa=FALSE)
 
-#2 fixed effects
+#2 fixed effects, 6 random effects
 input_2 <- set_NAA(input, NAA_re = list(N1_model = "iid-re"))
 fit_2 <- fit_wham(input_2, do.retro=FALSE, do.osa=FALSE)
 
-#3 fixed effects
+#3 fixed effects, 6 random effects
 input_3 <- set_NAA(input, NAA_re = list(N1_model = "ar1-re"))
 fit_3 <- fit_wham(input_3, do.retro=FALSE, do.osa=FALSE)
 
@@ -293,7 +293,7 @@ knitr::include_graphics(here::here("slides", "figs","vign_4_fit_9_NAA_devs.png")
 # Recruitment models
 
 .pull-left[
-Previous models assume a mean recruitment, but effect of spawning stock. 
+Previous models assume a mean recruitment, but no effect of spawning stock. 
 Here we assume a Beverton-Holt relationship for mean recruitment.
 ```{r, eval = FALSE}
 NAA_list <- list(recruit_model = 3,
@@ -336,27 +336,27 @@ knitr::include_graphics(here::here("slides", "figs","vign_4_fit_11_Ricker_SR.png
 # Natural Mortality options
 The `M` argument to `prepare_wham_input` or `set_M` has these elements to configure natural mortality.
 * `mean_model`: configuration options for mean/constant natural mortality
- * `fixed-M`: use initial values from asap or included in other elements of `M`
- * `estimate-M`: estimate mean/constant parameters
- * `weight-at-age`: estimate M as an allometric function of weight, $M_{y,a} = a W_{y,a}^b$
+ * `"fixed-M"`: use initial values from asap or included in other elements of `M`
+ * `"estimate-M"`: estimate mean/constant parameters
+ * `"weight-at-age"`: estimate M as an allometric function of weight, $M_{y,a} = a W_{y,a}^b$
 * `initial_means`: initial values to use for mean/constant natural mortality.
 * `means_map`: to fix or estimate `initial_means` parameters uniquely or commonly
 * `initial_MAA`: initial $M$ at age and year as a time-varying alternative to `initial_means`
-* `b_model`: modeling options for the `b` parameter when `mean_model = weight-at-age`
-* `b_prior`: Whether the `b` parameter should be treated as a random effect with a prior based on Lorenzen (1996).
-* `initial_b`: initial value for mean `b` parameter of allometric function of weight.
+* `b_model`: modeling options for the $b$ parameter when `mean_model = "weight-at-age"`
+* `b_prior`: Whether the $b$ parameter should be treated as a random effect with a prior based on Lorenzen (1996).
+* `initial_b`: initial value for mean $b$ parameter of allometric function of weight.
 
 ---
 
 # Natural Mortality options
 * `re_model`: configuration options for natural mortality random effects
  * `none`: no age or year varying random effects
- * `iid_a`: uncorrelated by age, constant by year
- * `iid_y`: uncorrelated by year, constant by age
- * `iid_ay`: uncorrelated by year and age
- * `ar1_a`: correlated by age, constant by year
- * `ar1_y`: correlated by year, constant by age
- * `ary1_ay`: correlated by year and age (2dar1)
+ * `"iid_a"`: uncorrelated by age, constant by year
+ * `"iid_y"`: uncorrelated by year, constant by age
+ * `"iid_ay"`: uncorrelated by year and age
+ * `"ar1_a"`: correlated by age, constant by year
+ * `"ar1_y"`: correlated by year, constant by age
+ * `"ary1_ay"`: correlated by year and age (2dar1)
 * `re_map`: to fix or estimate random effects by age, stock, region uniquely or commonly.
 * `sigma_vals`: initial standard deviation parameters for random effects
 * `sigma_map`: to fix or estimate standard deviation parameters uniquely or commonly.
@@ -415,7 +415,7 @@ knitr::include_graphics(here::here("slides", "figs","vign_4_fit_13_M_const.png")
 
 # Configuring mean natural mortality
 
-Next, estimate $M$ as a function of weight at age. We will need to use a prior based on Lorenzen (1996) for the exponent parameter (b)
+Next, estimate $M$ as a function of weight at age. We will need to use a prior based on Lorenzen (1996) for the exponent parameter ($b$)
 .pull-left[
 ```{r, eval = FALSE}
 M <- list(
@@ -440,7 +440,7 @@ knitr::include_graphics(here::here("slides", "figs","vign_4_fit_14_M.png"))
 
 .pull-left[
 First we estimate $M$ at age as autocorrelated random effects that are constant over time.
-Note, we fix mean M for these random effects at 0.2
+Note, we fix mean $M$ for these random effects at 0.2
 ```{r, eval = FALSE}
 M <- list(
   initial_means = array(0.2, dim = c(1,1,6)), 
@@ -515,9 +515,9 @@ The `catchability` argument to `prepare_wham_input` or `set_q` has these element
 * `q_lower`, `q_upper`: minimum and maximum values to use for mean/constant catchability.
 * `prior_sd`: when specified, the mean catchability will be treated as a random effect with prior distribution having this standard deviation
 * `re`: configuring random effects for catchability of each index
- * `none`: no random effects
- * `iid`: uncorrelated annual random effects
- * `ar1`: correlated annual random effects
+ * `"none"`: no random effects
+ * `"iid"`: uncorrelated annual random effects
+ * `"ar1"`: correlated annual random effects
 * `sigma_val`: initial values to use for standard deviation of annual random effects.
 * `sigma_map`: to fix or estimate standard deviation parameters uniquely or commonly.
 * `cor_val`: initial values to use for autocorrelation parameters of annual random effects.
@@ -527,7 +527,7 @@ The `catchability` argument to `prepare_wham_input` or `set_q` has these element
 
 # Configuring catchability random effects
 
-First, assume just independent q deviations for one index.
+First, assume just independent $q$ deviations for one index.
 .pull-left[
 ```{r, eval = FALSE}
 catchability <- list(
@@ -548,7 +548,7 @@ knitr::include_graphics(here::here("slides", "figs","vign_4_fit_18_q.png"))
 
 # Configuring catchability random effects
 
-Now, assume AR(1) q deviations for both indices.
+Now, assume AR(1) $q$ deviations for both indices.
 .pull-left[
 ```{r, eval = FALSE}
 catchability <- list(
@@ -570,7 +570,7 @@ knitr::include_graphics(here::here("slides", "figs","vign_4_fit_19_q.png"))
 
 # Configuring catchability random effects
 
-Now, force upper bound of 1 for q
+Now, force upper bound of 1 for $q$
 .pull-left[
 ```{r, eval = FALSE}
 catchability <- list(
