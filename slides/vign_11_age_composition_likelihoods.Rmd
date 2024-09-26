@@ -1,0 +1,168 @@
+---
+title:  "Age composition distributions: Beyond the multinomial"
+subtitle: ""
+author: "Tim Miller<br>NOAA Fisheries, NEFSC"
+output:
+  xaringan::moon_reader:
+    self_contained: true
+    css: ["xaringan-themer_16_9.css", "slides-style_TMB201.css"]
+    lib_dir: libs
+    nature:
+      ratio: '16:9'
+      highlightStyle: github
+      highlightLines: true
+      countIncrementalSlides: false
+---
+
+layout: true
+
+.footnote[U.S. Department of Commerce | National Oceanic and Atmospheric Administration | National Marine Fisheries Service]
+
+
+<style type="text/css">
+
+code.cpp{
+  font-size: 14px;
+}
+code.r{
+  font-size: 14px;
+}
+
+
+</style>
+
+```{css, echo=FALSE}
+pre {
+  max-height: 250px; /*changes height of chunk output box*/
+  max-width: 800px; /*changes width of chunk output box*/
+  overflow-y: auto; /* auto will add vertical scroll bar when necessary */
+}
+
+```
+
+
+```{r setup, include=FALSE}
+#options(htmltools.dir.version = FALSE)
+#library(knitr)
+#knitr::opts_chunk$set(cache = TRUE)
+#knitr::opts_knit$set(root.dir = here::here())
+#knitr::opts_chunk$set(width = 1500)
+#library(kableExtra)
+#library(imager)
+#here::i_am("c:/work/BSB_RT")
+
+#library(here)
+
+```
+
+```{r set-options, include = FALSE}
+options(width = 50)
+```
+
+```{r xaringan-tile-view, echo=FALSE}
+# this gives you a tile navigation if you type "O" at any time
+#xaringanExtra::use_tile_view()
+```
+
+---
+# Outline <br>
+
+Details for each age-composition likelihood option in WHAM
+* Frequency observations
+* Proportion observations
+* Different likelihoods for each fleet and index
+---
+
+# Frequency observations <br>
+
+Multinomial for data set $i$ in year $y$
+$$\mathbf{n}_{i,y} \sim Multinom\left(N_{i,y},\widehat{\mathbf{p}}_{i,y}\right)$$
+* No parameters are estimated. 
+* $N_{i,y}$ is an input "effective sample size". 
+* $\widehat {\mathbf{p}}_{i,y}$ is the vector of predicted proportions at age
+* Variance and covariance are
+$$N_{i,y}p_{i,y,k}(1-p_{i,y,k})$$
+$$-N_{i,y}p_{i,y,k}p_{i,y,k'}$$ for $k\neq k'$
+
+---
+
+# Frequency observations <br>
+
+Dirichlet-Multinomial (standard)
+$$\mathbf{n}_{i,y} \sim Dirichlet-Multinom\left(N_{i,y},\widehat{\mathbf{p}}_{i,y}, \phi_{i}\right)$$
+* Generated with $\widehat{\mathbf{p}}_{i,y}$ having a Dirichlet distribution.
+* $N_{i,y}$ is the number of age observations
+* An "overdispersed" distribution. 
+* $\phi_i$ is estimated.
+* Variance and covariance are
+$$N_{i,y}p_{i,y,k}(1-p_{i,y,k})\frac{N_{i,y} + \phi_i}{1+\phi_i}$$
+$$-N_{i,y}p_{i,y,k}p_{i,y,k'}\frac{N_{i,y} + \phi_i}{1+\phi_i}$$ for $k\neq k'$
+* Effective sample size between 1 and $N_{i,y}$ is $$\widehat{N}_{eff,i,y} = 1 + \frac{N_{i,y} -1}{1 + N_{i,y}\phi_{i}^{-1}}$$
+
+---
+
+# Frequency observations <br>
+
+Dirichlet-Multinomial (linear) (Thorson et al. 2017)
+$$\mathbf{n}_{i,y} \sim Dirichlet-Multinom\left(N_{i,y},\widehat{\mathbf{p}}_{i,y}, N_{i,y}\phi_{i}\right)$$
+* $N_{i,y}$ is the number of age observations
+* $\phi_i$ is estimated.
+* Variance and covariance are
+$$N_{i,y}p_{i,y,k}(1-p_{i,y,k})\frac{N_{i,y} + N_{i,y}\phi_i}{1+N_{i,y}\phi_i}$$
+$$-N_{i,y}p_{i,y,k}p_{i,y,k'}\frac{N_{i,y} + N_{i,y}\phi_i}{1+N_{i,y}\phi_i}$$ for $k\neq k'$
+* Effective sample size between 1 and $N_{i,y}$ is $$\widehat{N}_{eff,i,y} = 1 + \frac{N_{i,y} -1}{1 + \theta_{i}^{-1}}$$
+
+---
+# Frequency observations <br>
+
+Multivariate Tweedie (Thorson et al. 2023)
+$$\mathbf{n}_{i,y} \sim MVT\left(N_{i,y}\widehat{\mathbf{p}}_{i,y}, \phi_{i},\psi_i\right)$$
+* Vector of independent Tweedie RVs.
+* $N_{i,y}$ is the sum of the Tweedies and also a RV.
+* $\phi_i>0$ and $1<\psi_i<2$ are estimated.
+* Mean is $N_{i,y}\widehat{\mathbf{p}}_{i,y}$
+* Variance is $\phi_i\left(N_{i,y}\widehat{\mathbf{p}}_{i,y}\right)^\psi$
+
+---
+# Proportion observations <br>
+
+Dirichlet
+$$\mathbf{p}_{i,y} \sim Dirichlet\left(\widehat{\mathbf{p}}_{i,y}, \phi_{i}\right)$$
+* $\phi_i$ is estimated.
+* Variance and covariance are
+$$p_{i,y,k}(1-p_{i,y,k})\frac{\phi_i}{1+\phi_i}$$
+$$-p_{i,y,k}p_{i,y,k'}\frac{\phi_i}{1+\phi_i}$$ for $k\neq k'$
+* Requires observations to be in (0,1) so 0s (and 1s) are excluded
+* "miss-0" specifies to ignore predicted age composition where 0s occur
+* "pool-0" specified to pool predicted age composition with those for adjacent non-0 observations
+
+---
+# Proportion observations <br>
+
+logistic-normal
+$$\mathbf{p}_{i,y} \sim Logistic-Normal\left(\widehat{\mathbf{p}}_{i,y}, \boldsymbol{\Sigma}_{i,y}\right)$$
+* A transformation of a multivariate normal
+* $\boldsymbol{\Sigma}_{i,y}$ is a function of $\sigma_i$, and possibly $\rho_i$, that are estimated.
+* The elements of $\boldsymbol{\Sigma}_{i,y}$ for row $k$ and column $k'$ are $\frac{\rho^{|k-k'|}\sigma_i^2}{(1-\rho^2)N_{i,y}}$
+* Requires observations to be in $(0,1)$ so 0s (and 1s) are excluded
+* "miss-0" specifies to ignore predicted age composition where 0s occur
+* "pool-0" specified to pool predicted age composition with those for adjacent non-0 observations
+
+---
+
+# Using Age composition in WHAM
+
+The `age_comp` argument to `prepare_wham_input` or `set_age_comp` has these elements to configure age composition likelihoods.
+* `age_comp`: a single character string or a list of of 2 elements named "fleets" and "indices" with character strings for age composition likelihoods to use for each.
+    * `"multinomial"`: (default) use the multinomial distribution with defined effective sample sizes.
+    * `"dir-mult"`: use the Dirichlet-multinomial distribution with 'Neff' defined as maximum sample sizes.
+    * `"dir-mult-linear"`: use the "linear" Dirichlet-multinomial distribution with 'Neff' defined as maximum sample sizes.
+    * `"dirichlet-pool0"`: use the Dirichlet distribution pooling predictions to adjacent non-zero ages.
+    * `"dirichlet-miss0"`: use the Dirichlet distribution treating predictions at zeros as missing.
+    * `"logistic-normal-pool0"`: use the logistic-normal pooling predictions to adjacent non-zero ages.
+    * `"logistic-normal-miss0"`: use the logistic-normal treating predictions at zeros as missing.
+    * `"logistic-normal-ar1-miss0"`: use the logistic-normal with autoregressive correlation on MVN scale and treating predictions at zeros as missing.
+    * `"mvtweedie"`: use the multivariate Tweedie distribution. (no OSA residuals)
+    * `"logistic-normal-01-infl"`: a 0/1 inflated logistic normal analogous to Ospina and Ferrari (2012) (no OSA residuals)
+    * `"logistic-normal-01-infl-2par"`: like previous, but with probabilities of 0 and 1 defined by binomial sampling and abundances at age. (no OSA residuals)
+    
